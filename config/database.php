@@ -1,8 +1,10 @@
 <?php
 // Database configuratie voor Codex Mundi
 class Database {
-    private $server = "localhost";
-    private $database = "CodexMundi";
+    private $host = "localhost";
+    private $database = "codex_mundi";
+    private $username = "root";
+    private $password = "";
     private $connection;
     
     public function __construct() {
@@ -11,20 +13,18 @@ class Database {
     
     private function connect() {
         try {
-            // SQL Server connection string voor Windows Authentication
-            $connectionInfo = array(
-                "Database" => $this->database,
-                "CharacterSet" => "UTF-8",
-                "TrustServerCertificate" => true
-            );
+            // MySQL connection string
+            $dsn = "mysql:host={$this->host};dbname={$this->database};charset=utf8mb4";
             
-            $this->connection = sqlsrv_connect($this->server, $connectionInfo);
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ];
             
-            if ($this->connection === false) {
-                $errors = sqlsrv_errors();
-                throw new Exception("Database connection failed: " . print_r($errors, true));
-            }
-        } catch (Exception $e) {
+            $this->connection = new PDO($dsn, $this->username, $this->password, $options);
+            
+        } catch (PDOException $e) {
             // Log error maar stop niet de hele applicatie
             error_log("Database connection error: " . $e->getMessage());
             $this->connection = null;
@@ -44,65 +44,54 @@ class Database {
             throw new Exception("Database not connected");
         }
         
-        $stmt = sqlsrv_query($this->connection, $sql, $params);
-        
-        if ($stmt === false) {
-            $errors = sqlsrv_errors();
-            throw new Exception("Query failed: " . print_r($errors, true));
+        try {
+            $stmt = $this->connection->prepare($sql);
+            $stmt->execute($params);
+            return $stmt;
+        } catch (PDOException $e) {
+            throw new Exception("Query failed: " . $e->getMessage());
         }
-        
-        return $stmt;
     }
     
     public function fetchAll($sql, $params = array()) {
         $stmt = $this->query($sql, $params);
-        $results = array();
-        
-        while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-            $results[] = $row;
-        }
-        
-        return $results;
+        return $stmt->fetchAll();
     }
     
     public function fetchOne($sql, $params = array()) {
         $stmt = $this->query($sql, $params);
-        return sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+        return $stmt->fetch();
     }
     
     public function lastInsertId() {
-        $stmt = $this->query("SELECT SCOPE_IDENTITY() as id");
-        $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
-        return $row['id'];
+        return $this->connection->lastInsertId();
     }
     
     public function execute($sql, $params = array()) {
         $stmt = $this->query($sql, $params);
-        return sqlsrv_rows_affected($stmt);
+        return $stmt->rowCount();
     }
     
     public function beginTransaction() {
         if ($this->isConnected()) {
-            sqlsrv_begin_transaction($this->connection);
+            $this->connection->beginTransaction();
         }
     }
     
     public function commit() {
         if ($this->isConnected()) {
-            sqlsrv_commit($this->connection);
+            $this->connection->commit();
         }
     }
     
     public function rollback() {
         if ($this->isConnected()) {
-            sqlsrv_rollback($this->connection);
+            $this->connection->rollback();
         }
     }
     
     public function close() {
-        if ($this->connection) {
-            sqlsrv_close($this->connection);
-        }
+        $this->connection = null;
     }
 }
 ?>

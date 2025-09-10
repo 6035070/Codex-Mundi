@@ -1,34 +1,15 @@
 <?php
-session_start();
-require_once 'config/database.php';
 require_once 'includes/user.php';
 require_once 'includes/world_wonder.php';
-require_once 'includes/activity_log.php';
 
-// Initialize managers
 $userManager = new UserManager();
 $worldWonderManager = new WorldWonderManager();
-$activityLogManager = new ActivityLogManager();
 
-// Get current user
-$currentUser = null;
-if (isset($_SESSION['user_id'])) {
-    $currentUser = $userManager->getUserById($_SESSION['user_id']);
-}
+$currentUser = $userManager->getCurrentUser();
 
 // Get statistics
 $statistics = $worldWonderManager->getStatistics();
-
-// Get recent activity
-$recentActivity = $activityLogManager->getRecentActivity(10);
-
-// Get activity by user
-$userActivity = array();
-if ($currentUser) {
-    $userActivity = $activityLogManager->getUserActivity($currentUser['id'], 10);
-}
 ?>
-
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -36,293 +17,213 @@ if ($currentUser) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statistieken - Codex Mundi</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .stat-card h3 {
-            margin: 0 0 15px 0;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin: 20px 0;
-        }
-        
-        .activity-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .activity-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-        
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-        }
-        
-        .activity-content {
-            flex: 1;
-        }
-        
-        .activity-content p {
-            margin: 0 0 5px 0;
-            font-weight: 600;
-        }
-        
-        .activity-content small {
-            color: #6c757d;
-        }
-        
-        .export-buttons {
-            margin: 20px 0;
-            text-align: center;
-        }
-        
-        .export-buttons .btn {
-            margin: 0 10px;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <header class="main-header">
             <div class="header-content">
                 <div class="logo">
-                    <h1><i class="fas fa-chart-bar"></i> Statistieken</h1>
-                    <p>Overzicht van Codex Mundi data</p>
+                    <h1>Codex Mundi</h1>
+                    <p>Statistieken en Rapporten</p>
                 </div>
-                
                 <nav class="main-nav">
-                    <a href="index.php" class="nav-link">
-                        <i class="fas fa-home"></i> Home
-                    </a>
-                    <a href="map.php" class="nav-link">
-                        <i class="fas fa-map"></i> Kaart
-                    </a>
-                    <a href="statistics.php" class="nav-link active">
-                        <i class="fas fa-chart-bar"></i> Statistieken
-                    </a>
-                    
+                    <a href="index.php">← Terug naar overzicht</a>
                     <?php if ($currentUser): ?>
-                        <div class="user-menu">
-                            <div class="user-info">
-                                <i class="fas fa-user"></i>
-                                <?php echo htmlspecialchars($currentUser['first_name'] . ' ' . $currentUser['last_name']); ?>
-                            </div>
-                        </div>
+                        <a href="logout.php">Uitloggen</a>
+                    <?php else: ?>
+                        <a href="login.php">Inloggen</a>
                     <?php endif; ?>
                 </nav>
             </div>
         </header>
 
-        <!-- Export Buttons -->
-        <div class="export-buttons">
-            <button class="btn btn-primary" onclick="exportToPDF()">
-                <i class="fas fa-file-pdf"></i> Exporteer naar PDF
-            </button>
-            <button class="btn btn-secondary" onclick="exportToCSV()">
-                <i class="fas fa-file-csv"></i> Exporteer naar CSV
-            </button>
-        </div>
-
-        <!-- Overview Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3><i class="fas fa-globe"></i> Totaal Wereldwonderen</h3>
-                <div class="stat-number"><?php echo $statistics['total_wonders']; ?></div>
-            </div>
-            
-            <div class="stat-card">
-                <h3><i class="fas fa-check-circle"></i> Goedgekeurd</h3>
-                <div class="stat-number">
-                    <?php 
-                    $approved = array_sum(array_column($statistics['by_status'], 'count'));
-                    echo $approved;
-                    ?>
+        <div class="statistics-dashboard">
+            <!-- Overview Stats -->
+            <div class="stats-overview">
+                <h2>Overzicht</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3><?= $statistics['total_wonders'] ?></h3>
+                        <p>Totaal Wereldwonderen</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3><?= array_sum(array_column($statistics['by_status'], 'count')) ?></h3>
+                        <p>Goedgekeurd</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3><?= count($statistics['by_category']) ?></h3>
+                        <p>Categorieën</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3><?= count($statistics['by_continent']) ?></h3>
+                        <p>Continenten</p>
+                    </div>
                 </div>
             </div>
-            
-            <div class="stat-card">
-                <h3><i class="fas fa-users"></i> Actieve Gebruikers</h3>
-                <div class="stat-number"><?php echo count($userManager->getAllUsers()); ?></div>
-            </div>
-        </div>
 
-        <!-- Charts -->
-        <div class="stats-grid">
-            <!-- Category Chart -->
-            <div class="stat-card">
-                <h3><i class="fas fa-chart-pie"></i> Per Categorie</h3>
+            <!-- Charts Row -->
+            <div class="charts-row">
+                <!-- By Category Chart -->
                 <div class="chart-container">
+                    <h3>Per Categorie</h3>
                     <canvas id="categoryChart"></canvas>
                 </div>
-            </div>
-            
-            <!-- Continent Chart -->
-            <div class="stat-card">
-                <h3><i class="fas fa-chart-bar"></i> Per Continent</h3>
+
+                <!-- By Continent Chart -->
                 <div class="chart-container">
+                    <h3>Per Continent</h3>
                     <canvas id="continentChart"></canvas>
                 </div>
             </div>
-        </div>
 
-        <!-- Status Chart -->
-        <div class="stat-card">
-            <h3><i class="fas fa-chart-donut"></i> Per Status</h3>
-            <div class="chart-container">
+            <!-- Status Chart -->
+            <div class="chart-container full-width">
+                <h3>Status Verdeling</h3>
                 <canvas id="statusChart"></canvas>
             </div>
-        </div>
 
-        <!-- Recent Activity -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <h3><i class="fas fa-clock"></i> Recente Activiteit</h3>
-                <div class="activity-list">
-                    <?php foreach ($recentActivity as $activity): ?>
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-<?php echo getActivityIcon($activity['action']); ?>"></i>
-                            </div>
-                            <div class="activity-content">
-                                <p><?php echo htmlspecialchars($activity['action']); ?></p>
-                                <small>
-                                    door <?php echo htmlspecialchars($activity['username']); ?> 
-                                    op <?php echo date('d-m-Y H:i', strtotime($activity['created_at'])); ?>
-                                </small>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+            <!-- Detailed Tables -->
+            <div class="tables-row">
+                <!-- By Category Table -->
+                <div class="table-container">
+                    <h3>Wereldwonderen per Categorie</h3>
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>Categorie</th>
+                                <th>Aantal</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $total = $statistics['total_wonders'];
+                            foreach ($statistics['by_category'] as $category): 
+                                $percentage = $total > 0 ? round(($category['count'] / $total) * 100, 1) : 0;
+                            ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($category['category']) ?></td>
+                                    <td><?= $category['count'] ?></td>
+                                    <td><?= $percentage ?>%</td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- By Continent Table -->
+                <div class="table-container">
+                    <h3>Wereldwonderen per Continent</h3>
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>Continent</th>
+                                <th>Aantal</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($statistics['by_continent'] as $continent): 
+                                $percentage = $total > 0 ? round(($continent['count'] / $total) * 100, 1) : 0;
+                            ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($continent['continent']) ?></td>
+                                    <td><?= $continent['count'] ?></td>
+                                    <td><?= $percentage ?>%</td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <?php if ($currentUser && count($userActivity) > 0): ?>
-                <div class="stat-card">
-                    <h3><i class="fas fa-user"></i> Jouw Activiteit</h3>
-                    <div class="activity-list">
-                        <?php foreach ($userActivity as $activity): ?>
-                            <div class="activity-item">
-                                <div class="activity-icon">
-                                    <i class="fas fa-<?php echo getActivityIcon($activity['action']); ?>"></i>
+
+            <!-- Recent Activity -->
+            <?php if (!empty($statistics['recent'])): ?>
+                <div class="recent-activity">
+                    <h3>Meest Recente Wereldwonderen</h3>
+                    <div class="recent-list">
+                        <?php foreach ($statistics['recent'] as $wonder): ?>
+                            <div class="recent-item">
+                                <div class="recent-info">
+                                    <h4><?= htmlspecialchars($wonder['name']) ?></h4>
+                                    <p><?= htmlspecialchars($wonder['category']) ?> • <?= htmlspecialchars($wonder['continent']) ?></p>
                                 </div>
-                                <div class="activity-content">
-                                    <p><?php echo htmlspecialchars($activity['action']); ?></p>
-                                    <small>
-                                        op <?php echo date('d-m-Y H:i', strtotime($activity['created_at'])); ?>
-                                    </small>
+                                <div class="recent-meta">
+                                    <span class="status status-<?= $wonder['status'] ?>">
+                                        <?php
+                                        $statusLabels = array(
+                                            'exists' => 'Bestaat nog',
+                                            'destroyed' => 'Vernietigd',
+                                            'unknown' => 'Onbekend'
+                                        );
+                                        echo $statusLabels[$wonder['status']] ?? $wonder['status'];
+                                        ?>
+                                    </span>
+                                    <small><?= date('d-m-Y', strtotime($wonder['updated_at'])) ?></small>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     </div>
                 </div>
             <?php endif; ?>
-        </div>
 
-        <!-- Recent Wonders -->
-        <div class="stat-card">
-            <h3><i class="fas fa-star"></i> Meest Recente Wereldwonderen</h3>
-            <div class="world-wonders-grid">
-                <?php foreach ($statistics['recent'] as $wonder): ?>
-                    <div class="world-wonder-card">
-                        <div class="wonder-content">
-                            <h4><?php echo htmlspecialchars($wonder['name']); ?></h4>
-                            <p class="wonder-location">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <?php echo htmlspecialchars($wonder['city'] . ', ' . $wonder['country']); ?>
-                            </p>
-                            <p class="wonder-meta">
-                                <span class="category"><?php echo htmlspecialchars($wonder['category']); ?></span>
-                                <span class="status status-<?php echo $wonder['status']; ?>">
-                                    <?php
-                                    $statusLabels = array(
-                                        'exists' => 'Bestaat nog',
-                                        'destroyed' => 'Vernietigd',
-                                        'unknown' => 'Onbekend'
-                                    );
-                                    echo $statusLabels[$wonder['status']] ?? $wonder['status'];
-                                    ?>
-                                </span>
-                            </p>
-                            <small class="wonder-date">
-                                Toegevoegd op <?php echo date('d-m-Y', strtotime($wonder['created_at'])); ?>
-                                door <?php echo htmlspecialchars($wonder['created_by_username']); ?>
-                            </small>
-                        </div>
+            <!-- Export Options -->
+            <?php if ($currentUser && $userManager->hasPermission('export_data')): ?>
+                <div class="export-section">
+                    <h3>Export Opties</h3>
+                    <div class="export-buttons">
+                        <a href="export.php?format=pdf" class="btn btn-primary">Exporteer als PDF</a>
+                        <a href="export.php?format=csv" class="btn btn-secondary">Exporteer als CSV</a>
+                        <a href="export.php?format=json" class="btn btn-secondary">Exporteer als JSON</a>
                     </div>
-                <?php endforeach; ?>
-            </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
     <script>
         // Category Chart
-        const categoryData = <?php echo json_encode($statistics['by_category']); ?>;
-        const categoryChart = new Chart(document.getElementById('categoryChart'), {
+        const categoryData = <?= json_encode($statistics['by_category']) ?>;
+        const categoryLabels = categoryData.map(item => item.category);
+        const categoryCounts = categoryData.map(item => item.count);
+
+        new Chart(document.getElementById('categoryChart'), {
             type: 'doughnut',
             data: {
-                labels: categoryData.map(item => item.category),
+                labels: categoryLabels,
                 datasets: [{
-                    data: categoryData.map(item => item.count),
-                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
+                    data: categoryCounts,
+                    backgroundColor: ['#3498db', '#e74c3c', '#f39c12', '#27ae60', '#9b59b6']
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
             }
         });
 
         // Continent Chart
-        const continentData = <?php echo json_encode($statistics['by_continent']); ?>;
-        const continentChart = new Chart(document.getElementById('continentChart'), {
+        const continentData = <?= json_encode($statistics['by_continent']) ?>;
+        const continentLabels = continentData.map(item => item.continent);
+        const continentCounts = continentData.map(item => item.count);
+
+        new Chart(document.getElementById('continentChart'), {
             type: 'bar',
             data: {
-                labels: continentData.map(item => item.continent),
+                labels: continentLabels,
                 datasets: [{
-                    label: 'Aantal wereldwonderen',
-                    data: continentData.map(item => item.count),
-                    backgroundColor: '#36A2EB'
+                    label: 'Aantal Wereldwonderen',
+                    data: continentCounts,
+                    backgroundColor: '#3498db'
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
                 scales: {
                     y: {
                         beginAtZero: true
@@ -332,66 +233,239 @@ if ($currentUser) {
         });
 
         // Status Chart
-        const statusData = <?php echo json_encode($statistics['by_status']); ?>;
-        const statusChart = new Chart(document.getElementById('statusChart'), {
+        const statusData = <?= json_encode($statistics['by_status']) ?>;
+        const statusLabels = statusData.map(item => {
+            const labels = {
+                'exists': 'Bestaat nog',
+                'destroyed': 'Vernietigd',
+                'unknown': 'Onbekend'
+            };
+            return labels[item.status] || item.status;
+        });
+        const statusCounts = statusData.map(item => item.count);
+
+        new Chart(document.getElementById('statusChart'), {
             type: 'pie',
             data: {
-                labels: statusData.map(item => item.status === 'exists' ? 'Bestaat nog' : 
-                                              item.status === 'destroyed' ? 'Vernietigd' : 'Onbekend'),
+                labels: statusLabels,
                 datasets: [{
-                    data: statusData.map(item => item.count),
-                    backgroundColor: ['#28a745', '#dc3545', '#ffc107']
+                    data: statusCounts,
+                    backgroundColor: ['#27ae60', '#e74c3c', '#f39c12']
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
             }
         });
-
-        // Export functions
-        function exportToPDF() {
-            window.print();
-        }
-
-        function exportToCSV() {
-            // Simple CSV export
-            const data = [
-                ['Categorie', 'Aantal'],
-                ...categoryData.map(item => [item.category, item.count])
-            ];
-            
-            const csvContent = data.map(row => row.join(',')).join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'codex_mundi_statistics.csv';
-            a.click();
-        }
     </script>
+
+    <style>
+        .statistics-dashboard {
+            display: grid;
+            gap: 30px;
+        }
+
+        .stats-overview {
+            background: white;
+            padding: 25px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stats-overview h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .stat-card h3 {
+            font-size: 2.5em;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .stat-card p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .chart-container.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-container h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .tables-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .table-container {
+            background: white;
+            padding: 25px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .table-container h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .stats-table th,
+        .stats-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .stats-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stats-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .recent-activity {
+            background: white;
+            padding: 25px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .recent-activity h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .recent-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .recent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #ecf0f1;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+
+        .recent-info h4 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+
+        .recent-info p {
+            margin: 0;
+            color: #7f8c8d;
+        }
+
+        .recent-meta {
+            text-align: right;
+        }
+
+        .recent-meta small {
+            display: block;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .export-section {
+            background: white;
+            padding: 25px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .export-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+        }
+
+        .status-exists { background: #27ae60; }
+        .status-destroyed { background: #e74c3c; }
+        .status-unknown { background: #f39c12; }
+
+        @media (max-width: 768px) {
+            .charts-row,
+            .tables-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .recent-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .recent-meta {
+                text-align: center;
+            }
+            
+            .export-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
 </body>
 </html>
-
-<?php
-// Helper function for activity icons
-function getActivityIcon($action) {
-    $icons = array(
-        'create' => 'plus',
-        'update' => 'edit',
-        'delete' => 'trash',
-        'approve' => 'check',
-        'upload' => 'upload',
-        'login' => 'sign-in-alt',
-        'logout' => 'sign-out-alt'
-    );
-    
-    foreach ($icons as $key => $icon) {
-        if (strpos(strtolower($action), $key) !== false) {
-            return $icon;
-        }
-    }
-    
-    return 'info';
-}
-?>

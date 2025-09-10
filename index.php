@@ -1,24 +1,15 @@
 <?php
-session_start();
-require_once 'config/database.php';
 require_once 'includes/user.php';
 require_once 'includes/world_wonder.php';
 require_once 'includes/media.php';
-require_once 'includes/activity_log.php';
-require_once 'includes/notification.php';
 
 // Initialize managers
 $userManager = new UserManager();
 $worldWonderManager = new WorldWonderManager();
 $mediaManager = new MediaManager();
-$activityLogManager = new ActivityLogManager();
-$notificationManager = new NotificationManager();
 
 // Get current user
-$currentUser = null;
-if (isset($_SESSION['user_id'])) {
-    $currentUser = $userManager->getUserById($_SESSION['user_id']);
-}
+$currentUser = $userManager->getCurrentUser();
 
 // Get filters from URL
 $filters = array();
@@ -39,7 +30,7 @@ if (isset($_GET['sort'])) {
 }
 
 // Only show approved wonders to visitors
-if (!$currentUser || !$userManager->hasPermission($currentUser['id'], 'view_unapproved_wonders')) {
+if (!$currentUser || !$userManager->hasPermission('view_unapproved_wonders')) {
     $filters['is_approved'] = 1;
 }
 
@@ -49,13 +40,33 @@ $worldWonders = $worldWonderManager->getAllWorldWonders($filters);
 // Get statistics
 $statistics = $worldWonderManager->getStatistics();
 
-// Get recent activity
-$recentActivity = $activityLogManager->getRecentActivity(5);
-
-// Get notifications for current user
-$notifications = array();
+// Get recent activity (empty array if not available)
+$recentActivity = array();
 if ($currentUser) {
-    $notifications = $notificationManager->getUserNotifications($currentUser['id'], true);
+    // For now, we'll use an empty array. In a real implementation, 
+    // you would fetch this from an activity log table
+    $recentActivity = array();
+}
+
+// Helper function for activity icons
+function getActivityIcon($action) {
+    $icons = array(
+        'created' => 'plus',
+        'updated' => 'edit',
+        'approved' => 'check',
+        'deleted' => 'trash',
+        'uploaded' => 'upload',
+        'commented' => 'comment'
+    );
+    
+    $action = strtolower($action);
+    foreach ($icons as $key => $icon) {
+        if (strpos($action, $key) !== false) {
+            return $icon;
+        }
+    }
+    
+    return 'info'; // Default icon
 }
 ?>
 
@@ -89,51 +100,21 @@ if ($currentUser) {
                     <a href="statistics.php" class="nav-link">
                         <i class="fas fa-chart-bar"></i> Statistieken
                     </a>
+                    <?php if ($currentUser && $userManager->hasPermission('manage_users')): ?>
+                        <a href="admin.php" class="nav-link">
+                            <i class="fas fa-cog"></i> Beheer
+                        </a>
+                    <?php endif; ?>
                     
                     <?php if ($currentUser): ?>
                         <div class="user-menu">
-                            <div class="user-info">
-                                <i class="fas fa-user"></i>
-                                <?php echo htmlspecialchars($currentUser['first_name'] . ' ' . $currentUser['last_name']); ?>
-                                <span class="role">(<?php echo htmlspecialchars($currentUser['role_name']); ?>)</span>
-                            </div>
-                            
-                            <?php if (count($notifications) > 0): ?>
-                                <div class="notification-badge">
-                                    <i class="fas fa-bell"></i>
-                                    <span class="badge"><?php echo count($notifications); ?></span>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <div class="dropdown">
-                                <button class="dropdown-toggle">
-                                    <i class="fas fa-cog"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <a href="profile.php">
-                                        <i class="fas fa-user"></i> Profiel
-                                    </a>
-                                    <a href="notifications.php">
-                                        <i class="fas fa-bell"></i> Notificaties
-                                        <?php if (count($notifications) > 0): ?>
-                                            <span class="badge"><?php echo count($notifications); ?></span>
-                                        <?php endif; ?>
-                                    </a>
-                                    <?php if ($userManager->hasPermission($currentUser['id'], 'manage_users')): ?>
-                                        <a href="admin.php">
-                                            <i class="fas fa-cog"></i> Beheer
-                                        </a>
-                                    <?php endif; ?>
-                                    <a href="logout.php">
-                                        <i class="fas fa-sign-out-alt"></i> Uitloggen
-                                    </a>
-                                </div>
-                            </div>
+                            <span>Welkom, <?php echo htmlspecialchars($currentUser['first_name']); ?> (<?php echo htmlspecialchars($currentUser['role_name']); ?>)</span>
+                            <a href="logout.php">Uitloggen</a>
                         </div>
                     <?php else: ?>
                         <div class="auth-links">
-                            <a href="login.php" class="btn btn-outline">Inloggen</a>
-                            <a href="register.php" class="btn btn-primary">Registreren</a>
+                            <a href="login.php">Inloggen</a>
+                            <a href="register.php">Registreren</a>
                         </div>
                     <?php endif; ?>
                 </nav>
@@ -214,11 +195,9 @@ if ($currentUser) {
         </div>
 
         <!-- Action Buttons -->
-        <?php if ($currentUser && $userManager->hasPermission($currentUser['id'], 'create_wonders')): ?>
+        <?php if ($currentUser && $userManager->hasPermission('create_wonders')): ?>
             <div class="actions">
-                <a href="world_wonder_form.php" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Nieuw Wereldwonder
-                </a>
+                <a href="world_wonder_form.php">+ Nieuw Wereldwonder</a>
             </div>
         <?php endif; ?>
 
@@ -294,14 +273,10 @@ if ($currentUser) {
                         </div>
                         
                         <div class="wonder-actions">
-                            <a href="world_wonder_detail.php?id=<?php echo $wonder['id']; ?>" class="btn btn-sm btn-primary">
-                                <i class="fas fa-eye"></i> Bekijken
-                            </a>
+                            <a href="world_wonder_detail.php?id=<?php echo $wonder['id']; ?>">Bekijken</a>
                             
-                            <?php if ($currentUser && $userManager->hasPermission($currentUser['id'], 'edit_wonders')): ?>
-                                <a href="world_wonder_form.php?id=<?php echo $wonder['id']; ?>" class="btn btn-sm btn-edit">
-                                    <i class="fas fa-edit"></i> Bewerken
-                                </a>
+                            <?php if ($currentUser && $userManager->hasPermission('edit_wonders')): ?>
+                                <a href="world_wonder_form.php?id=<?php echo $wonder['id']; ?>">Bewerken</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -310,7 +285,7 @@ if ($currentUser) {
         </div>
 
         <!-- Recent Activity -->
-        <?php if ($currentUser && count($recentActivity) > 0): ?>
+        <?php if ($currentUser && is_array($recentActivity) && count($recentActivity) > 0): ?>
             <div class="recent-activity">
                 <h3><i class="fas fa-clock"></i> Recente Activiteit</h3>
                 <div class="activity-list">
@@ -336,26 +311,3 @@ if ($currentUser) {
     <script src="js/script.js"></script>
 </body>
 </html>
-
-<?php
-// Helper function for activity icons
-function getActivityIcon($action) {
-    $icons = array(
-        'create' => 'plus',
-        'update' => 'edit',
-        'delete' => 'trash',
-        'approve' => 'check',
-        'upload' => 'upload',
-        'login' => 'sign-in-alt',
-        'logout' => 'sign-out-alt'
-    );
-    
-    foreach ($icons as $key => $icon) {
-        if (strpos(strtolower($action), $key) !== false) {
-            return $icon;
-        }
-    }
-    
-    return 'info';
-}
-?>

@@ -143,7 +143,7 @@ class WorldWonderManager {
             return true;
         }
         
-        $fields[] = "updated_at = GETDATE()";
+        $fields[] = "updated_at = NOW()";
         $params[] = $id;
         
         $sql = "UPDATE world_wonders SET " . implode(', ', $fields) . " WHERE id = ?";
@@ -177,7 +177,7 @@ class WorldWonderManager {
             throw new Exception("Database not connected");
         }
         
-        $sql = "UPDATE world_wonders SET is_approved = 1, approved_by = ?, updated_at = GETDATE() WHERE id = ?";
+        $sql = "UPDATE world_wonders SET is_approved = 1, approved_by = ?, updated_at = NOW() WHERE id = ?";
         $this->db->query($sql, array($approvedBy, $id));
         return true;
     }
@@ -208,10 +208,11 @@ class WorldWonderManager {
         $stats['by_status'] = $this->db->fetchAll($sql);
         
         // Meest recente
-        $sql = "SELECT TOP 5 w.*, u.username as created_by_username 
+        $sql = "SELECT w.*, u.username as created_by_username 
                 FROM world_wonders w 
                 LEFT JOIN users u ON w.created_by = u.id 
-                ORDER BY w.updated_at DESC";
+                ORDER BY w.updated_at DESC 
+                LIMIT 5";
         $stats['recent'] = $this->db->fetchAll($sql);
         
         return $stats;
