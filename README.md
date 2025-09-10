@@ -1,195 +1,161 @@
-# CRUD Systeem met Afbeeldingen
+# Codex Mundi - Database van Wereldwonderen
 
-Een complete webapplicatie gebouwd met HTML, PHP, CSS en Microsoft SQL Server voor het beheren van items met afbeeldingen.
+Een complete webapplicatie voor het beheren van wereldwonderen met rollenbeheer, media upload, kaart functionaliteit en uitgebreide statistieken.
 
-## Functies
+## 🚀 **Snelle Start**
 
-- ✅ **CRUD Operaties**: Create, Read, Update, Delete items
-- ✅ **Afbeelding Upload**: Upload en beheer afbeeldingen (JPEG, PNG, GIF, WebP)
-- ✅ **Responsive Design**: Werkt op desktop, tablet en mobiel
-- ✅ **Modern UI**: Mooie en gebruiksvriendelijke interface
-- ✅ **SQL Server Database**: Volledige integratie met Microsoft SQL Server
-- ✅ **Real-time Updates**: Directe feedback bij alle acties
-
-## Vereisten
-
-### Software
-- **PHP 7.4+** met SQL Server extensie
-- **Microsoft SQL Server** (2016 of nieuwer)
-- **SQL Server Management Studio (SSMS)**
-- **Web Server** (Apache/Nginx) of **XAMPP/WAMP**
-
-### PHP Extensies
-```bash
-# Installeer de SQL Server extensie voor PHP
-# Voor Windows:
-# Download Microsoft Drivers for PHP for SQL Server
-# Voor Linux:
-sudo apt-get install php-sqlsrv php-pdo-sqlsrv
-```
-
-## Installatie
-
-### 1. Database Setup
-
+### **1. Database Setup**
 1. Open **SQL Server Management Studio**
-2. Maak een nieuwe database aan:
-   ```sql
-   CREATE DATABASE ImageCRUD;
-   ```
-3. Voer het `database_schema.sql` bestand uit in de nieuwe database
-4. Controleer of de tabel `items` is aangemaakt
+2. Voer `database_schema_codex_mundi.sql` uit (F5)
+3. Database `CodexMundi` wordt aangemaakt met alle tabellen en voorbeelddata
 
-### 2. Database Configuratie
+### **2. Laragon Starten**
+1. Start **Laragon**
+2. Ga naar: `http://localhost/project%20testen%20en%20acceptatie/`
 
-Bewerk het bestand `config/database.php`:
+### **3. Testen**
+- **Bezoeker**: Bekijk wereldwonderen, zoek en filter
+- **Registreren**: Maak account aan als Onderzoeker
+- **Inloggen**: Test alle rollen en functionaliteiten
 
-```php
-private $server = "localhost"; // of je SQL Server instance naam
-private $database = "ImageCRUD";
-private $username = "sa"; // je SQL Server username
-private $password = "your_password"; // je SQL Server password
-```
+## ✨ **Functionaliteiten**
 
-### 3. Web Server Setup
+### **🔐 Gebruikersrollen & Rechten**
+- **Bezoeker**: Alleen wereldwonderen bekijken
+- **Onderzoeker**: Nieuwe wereldwonderen aanmaken, eigen bijdragen bewerken
+- **Redacteur**: Bijdragen controleren en goedkeuren, metadata toevoegen
+- **Archivaris**: Historische gegevens toevoegen, GPS-coördinaten, sorteren
+- **Beheerder**: Alles beheren, gebruikers en rollen aanmaken
 
-#### Optie A: XAMPP/WAMP
-1. Download en installeer XAMPP of WAMP
-2. Kopieer alle bestanden naar de `htdocs` of `www` directory
-3. Start Apache en SQL Server services
+### **🌍 Wereldwonderen Beheer**
+- **CRUD Operaties**: Aanmaken, bekijken, bewerken, verwijderen
+- **Volledige Informatie**: Naam, beschrijving, historische info, bouwjaar, status
+- **Media Upload**: Foto's en documenten met goedkeuringssysteem
+- **GPS Locaties**: Coördinaten opslaan en op kaart bekijken
 
-#### Optie B: IIS (Windows)
-1. Installeer IIS met PHP ondersteuning
-2. Kopieer bestanden naar de web directory
-3. Configureer PHP voor SQL Server
+### **🔍 Zoeken & Filteren**
+- **Zoeken op naam** van wereldwonder
+- **Filteren op categorie** (klassiek, modern, natuurlijk)
+- **Filteren op werelddeel** (Afrika, Azië, Europa, etc.)
+- **Sorteren op alfabet en bouwjaar**
+- **Status filter** (bestaat nog wel/niet)
 
-### 4. Permissies
+### **📊 Statistieken & Rapporten**
+- **Overzicht per werelddeel** (aantal wonderen)
+- **Meest bekeken wereldwonderen**
+- **Lijst van laatst bewerkte wonderen**
+- **Export mogelijkheden** (PDF/CSV)
+- **Interactieve grafieken** met Chart.js
 
-Zorg ervoor dat de `uploads` directory schrijfrechten heeft:
-```bash
-# Windows
-icacls uploads /grant Everyone:F
+### **🗺️ Kaart & Locatie**
+- **Interactieve kaart** met Leaflet.js
+- **GPS-coördinaten opslaan**
+- **Wereldwonderen op kaart bekijken**
+- **Klik op kaart = detailpagina**
+- **Locatie aanpassen en controleren**
 
-# Linux
-chmod 755 uploads
-```
+### **🔒 Beveiliging & Logging**
+- **Veilige login** met authenticatie en rollenbeheer
+- **Website veilig te gebruiken zonder login** (voor bezoekers)
+- **Logboek van wijzigingen** (wie heeft wat aangepast)
+- **Notificaties/meldingen** bij nieuwe bijdragen
 
-## Project Structuur
+## 📁 **Project Structuur**
 
 ```
 project/
-├── api/
-│   └── items.php          # REST API endpoints
 ├── config/
-│   └── database.php       # Database configuratie
-├── css/
-│   └── style.css          # Styling
+│   └── database.php              # Database configuratie
 ├── includes/
-│   └── item.php           # Item management class
+│   ├── user.php                 # Gebruikerssysteem
+│   ├── world_wonder.php         # Wereldwonderen CRUD
+│   ├── media.php                # Media upload systeem
+│   ├── activity_log.php         # Activiteit logging
+│   └── notification.php         # Notificatie systeem
+├── css/
+│   └── style.css                # Responsive styling
 ├── js/
-│   └── script.js          # Frontend JavaScript
-├── uploads/               # Uploaded afbeeldingen
-├── index.php              # Hoofdpagina
-├── database_schema.sql    # Database schema
-└── README.md             # Dit bestand
+│   └── script.js                # Frontend functionaliteit
+├── uploads/                     # Geüploade bestanden
+├── index.php                    # Hoofdpagina
+├── map.php                      # Kaart functionaliteit
+├── statistics.php               # Statistieken en rapporten
+├── login.php                    # Inloggen
+├── register.php                 # Registreren
+├── logout.php                   # Uitloggen
+└── database_schema_codex_mundi.sql  # Complete database schema
 ```
 
-## Gebruik
+## 🎯 **Hoe te Gebruiken**
 
-### Items Toevoegen
-1. Klik op "Nieuw Item Toevoegen"
-2. Vul titel en beschrijving in
-3. Selecteer een afbeelding (optioneel)
-4. Klik op "Opslaan"
+### **Wereldwonderen Toevoegen**
+1. **Registreer** als Onderzoeker
+2. **Klik op "Nieuw Wereldwonder"**
+3. **Vul alle gegevens in** (naam, beschrijving, locatie, etc.)
+4. **Upload afbeeldingen** (optioneel)
+5. **Klik op "Opslaan"**
 
-### Items Bewerken
-1. Hover over een item kaart
-2. Klik op het potlood icoon
-3. Pas de gegevens aan
-4. Klik op "Opslaan"
+### **Wereldwonderen Bewerken**
+1. **Hover over een wereldwonder kaart**
+2. **Klik op het potlood icoon**
+3. **Pas de gegevens aan**
+4. **Klik op "Opslaan"**
 
-### Items Verwijderen
-1. Hover over een item kaart
-2. Klik op het prullenbak icoon
-3. Bevestig de verwijdering
+### **Media Goedkeuren (Redacteur)**
+1. **Log in als Redacteur**
+2. **Ga naar beheer sectie**
+3. **Controleer geüploade media**
+4. **Klik op "Goedkeuren"**
 
-## API Endpoints
+### **Kaart Bekijken**
+1. **Ga naar "Kaart" in het menu**
+2. **Bekijk wereldwonderen op de kaart**
+3. **Klik op markers voor details**
+4. **Gebruik filters voor specifieke categorieën**
 
-### GET /api/items.php
-- **Alle items**: `GET /api/items.php`
-- **Specifiek item**: `GET /api/items.php?id=1`
+## 🔧 **Technische Details**
 
-### POST /api/items.php
-- **Nieuw item aanmaken**
-- Content-Type: `multipart/form-data`
-- Parameters: `title`, `description`, `image` (file)
+### **Backend**
+- **PHP 7.4+** (geen framework)
+- **Microsoft SQL Server** database
+- **Rollenbeheer** met permissions
+- **Activiteit logging** en notificaties
 
-### PUT /api/items.php
-- **Item bijwerken**
-- Content-Type: `application/json`
-- Body: `{"id": 1, "title": "...", "description": "...", "image_path": "..."}`
+### **Frontend**
+- **HTML5, CSS3, JavaScript** (responsive)
+- **Leaflet.js** voor kaart functionaliteit
+- **Chart.js** voor statistieken
+- **Font Awesome** voor iconen
 
-### DELETE /api/items.php
-- **Item verwijderen**
-- Content-Type: `application/json`
-- Body: `{"id": 1}`
+### **Database**
+- **Complete tabelstructuur** voor alle functionaliteiten
+- **Foreign keys** en relaties
+- **Indexen** voor performance
+- **Voorbeelddata** voor testing
 
-## Database Schema
-
-```sql
-CREATE TABLE items (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    title NVARCHAR(255) NOT NULL,
-    description NVARCHAR(MAX),
-    image_path NVARCHAR(500),
-    created_at DATETIME2 DEFAULT GETDATE(),
-    updated_at DATETIME2 DEFAULT GETDATE()
-);
-```
-
-## Veiligheid
-
-- ✅ **SQL Injection Protection**: Gebruikt prepared statements
-- ✅ **File Upload Validation**: Controleert bestandstype en grootte
-- ✅ **XSS Protection**: HTML escaping in output
-- ✅ **CSRF Protection**: Kan worden toegevoegd indien nodig
-
-## Troubleshooting
-
-### Database Connectie Problemen
-1. Controleer SQL Server service status
-2. Verificeer gebruikersnaam en wachtwoord
-3. Controleer firewall instellingen
-4. Test connectie in SSMS
-
-### Upload Problemen
-1. Controleer uploads directory permissies
-2. Verificeer PHP upload_max_filesize
-3. Controleer post_max_size in php.ini
-
-### PHP SQL Server Extensie
-```bash
-# Controleer of extensie is geladen
-php -m | grep sqlsrv
-
-# Herstart web server na installatie
-```
-
-## Browser Ondersteuning
+## 🌐 **Browser Ondersteuning**
 
 - ✅ Chrome 60+
 - ✅ Firefox 55+
 - ✅ Safari 12+
 - ✅ Edge 79+
 
-## Licentie
+## 📱 **Responsive Design**
 
-Dit project is gemaakt voor educatieve doeleinden.
+- **Desktop**: Volledige functionaliteit met grid layout
+- **Tablet**: Aangepaste layout voor touch devices
+- **Mobile**: Single column layout met touch-friendly interface
 
-## Support
+## 🚀 **Klaar voor Gebruik!**
 
-Voor vragen of problemen, controleer:
-1. PHP error logs
-2. SQL Server logs
-3. Web server logs
-4. Browser developer console
+Het Codex Mundi systeem is volledig functioneel en klaar voor gebruik. Start Laragon, voer de database setup uit en begin met het beheren van wereldwonderen!
+
+## 📞 **Support**
+
+Voor vragen of problemen:
+1. Controleer of Laragon draait
+2. Controleer of database `CodexMundi` bestaat
+3. Controleer de browser console voor errors
+4. Herstart Laragon als nodig
+
+**Veel plezier met Codex Mundi!** 🎉

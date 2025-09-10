@@ -1,8 +1,9 @@
+
 <?php
-// Database configuratie voor Codex Mundi
+// Database configuratie voor SQL Server
 class Database {
     private $server = "localhost";
-    private $database = "CodexMundi";
+    private $database = "ImageCRUD";
     private $connection;
     
     public function __construct() {
@@ -74,29 +75,6 @@ class Database {
         $stmt = $this->query("SELECT SCOPE_IDENTITY() as id");
         $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
         return $row['id'];
-    }
-    
-    public function execute($sql, $params = array()) {
-        $stmt = $this->query($sql, $params);
-        return sqlsrv_rows_affected($stmt);
-    }
-    
-    public function beginTransaction() {
-        if ($this->isConnected()) {
-            sqlsrv_begin_transaction($this->connection);
-        }
-    }
-    
-    public function commit() {
-        if ($this->isConnected()) {
-            sqlsrv_commit($this->connection);
-        }
-    }
-    
-    public function rollback() {
-        if ($this->isConnected()) {
-            sqlsrv_rollback($this->connection);
-        }
     }
     
     public function close() {

@@ -1,171 +1,78 @@
-// JavaScript voor CRUD functionaliteit
-let currentItemId = null;
-
-// Modal functies
-function openModal(action, itemId = null) {
-    const modal = document.getElementById('itemModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const form = document.getElementById('itemForm');
-    const currentImageDiv = document.getElementById('currentImage');
-    
-    // Form resetten
-    form.reset();
-    currentImageDiv.innerHTML = '';
-    currentItemId = itemId;
-    
-    if (action === 'add') {
-        modalTitle.textContent = 'Nieuw Item Toevoegen';
-        document.getElementById('itemId').value = '';
-    } else if (action === 'edit' && itemId) {
-        modalTitle.textContent = 'Item Bewerken';
-        loadItemForEdit(itemId);
-    }
-    
-    modal.style.display = 'block';
-    document.body.style.overflow = 'hidden';
-}
-
-function closeModal() {
-    const modal = document.getElementById('itemModal');
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
-    currentItemId = null;
-}
-
-// Item laden voor bewerking
-async function loadItemForEdit(itemId) {
-    try {
-        showLoading();
-        const response = await fetch(`api/items.php?id=${itemId}`);
-        const result = await response.json();
-        
-        if (result.success) {
-            const item = result.data;
-            document.getElementById('itemId').value = item.id;
-            document.getElementById('title').value = item.title;
-            document.getElementById('description').value = item.description || '';
-            
-            // Huidige afbeelding tonen
-            if (item.image_path) {
-                const currentImageDiv = document.getElementById('currentImage');
-                currentImageDiv.innerHTML = `
-                    <p><strong>Huidige afbeelding:</strong></p>
-                    <img src="${item.image_path}" alt="Huidige afbeelding" style="max-width: 200px; max-height: 150px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                `;
-            }
-        } else {
-            showAlert('Fout bij het laden van het item: ' + result.message, 'error');
-        }
-    } catch (error) {
-        showAlert('Er is een fout opgetreden: ' + error.message, 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Item bewerken
-function editItem(itemId) {
-    openModal('edit', itemId);
-}
-
-// Item verwijderen
-async function deleteItem(itemId) {
-    if (!confirm('Weet je zeker dat je dit item wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.')) {
-        return;
-    }
-    
-    try {
-        showLoading();
-        const response = await fetch('api/items.php', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id: itemId })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showAlert('Item succesvol verwijderd!', 'success');
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
-        } else {
-            showAlert('Fout bij het verwijderen: ' + result.message, 'error');
-        }
-    } catch (error) {
-        showAlert('Er is een fout opgetreden: ' + error.message, 'error');
-    } finally {
-        hideLoading();
-    }
-}
-
-// Form submit handler
-document.getElementById('itemForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const itemId = formData.get('id');
-    const isEdit = itemId && itemId !== '';
-    
-    try {
-        showLoading();
-        
-        let response;
-        if (isEdit) {
-            // Voor updates gebruiken we PUT met JSON
-            const data = {
-                id: itemId,
-                title: formData.get('title'),
-                description: formData.get('description'),
-                image_path: formData.get('image_path') || null
-            };
-            
-            response = await fetch('api/items.php', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
-        } else {
-            // Voor nieuwe items gebruiken we POST met FormData
-            response = await fetch('api/items.php', {
-                method: 'POST',
-                body: formData
-            });
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showAlert(isEdit ? 'Item succesvol bijgewerkt!' : 'Item succesvol toegevoegd!', 'success');
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
-        } else {
-            showAlert('Fout: ' + result.message, 'error');
-        }
-    } catch (error) {
-        showAlert('Er is een fout opgetreden: ' + error.message, 'error');
-    } finally {
-        hideLoading();
-    }
+// Codex Mundi - JavaScript Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all functionality
+    initializeDropdowns();
+    initializeSearch();
+    initializeNotifications();
 });
 
-// Loading functies
-function showLoading() {
-    document.getElementById('loadingOverlay').style.display = 'block';
+// Dropdown functionality
+function initializeDropdowns() {
+    const dropdowns = document.querySelectorAll('.dropdown');
+    
+    dropdowns.forEach(dropdown => {
+        const toggle = dropdown.querySelector('.dropdown-toggle');
+        const menu = dropdown.querySelector('.dropdown-menu');
+        
+        if (toggle && menu) {
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closeAllDropdowns();
+                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            });
+        }
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        closeAllDropdowns();
+    });
 }
 
-function hideLoading() {
-    document.getElementById('loadingOverlay').style.display = 'none';
+function closeAllDropdowns() {
+    const menus = document.querySelectorAll('.dropdown-menu');
+    menus.forEach(menu => {
+        menu.style.display = 'none';
+    });
 }
 
-// Alert functie
+// Search functionality
+function initializeSearch() {
+    const searchForm = document.querySelector('.search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            // Add loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Zoeken...';
+                submitBtn.disabled = true;
+                
+                // Re-enable after a short delay
+                setTimeout(() => {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }, 1000);
+            }
+        });
+    }
+}
+
+// Notification functionality
+function initializeNotifications() {
+    const notificationBadges = document.querySelectorAll('.notification-badge');
+    
+    notificationBadges.forEach(badge => {
+        badge.addEventListener('click', function() {
+            // Toggle notification panel or redirect to notifications page
+            window.location.href = 'notifications.php';
+        });
+    });
+}
+
+// Utility functions
 function showAlert(message, type = 'info') {
-    // Verwijder bestaande alerts
+    // Remove existing alerts
     const existingAlerts = document.querySelectorAll('.alert');
     existingAlerts.forEach(alert => alert.remove());
     
@@ -194,7 +101,7 @@ function showAlert(message, type = 'info') {
         animation: slideInRight 0.3s ease;
     `;
     
-    // Kleuren per type
+    // Colors per type
     const colors = {
         success: '#28a745',
         error: '#dc3545',
@@ -204,7 +111,7 @@ function showAlert(message, type = 'info') {
     
     alert.style.backgroundColor = colors[type] || colors.info;
     
-    // Sluit button styling
+    // Close button styling
     const closeBtn = alert.querySelector('button');
     closeBtn.style.cssText = `
         background: none;
@@ -218,7 +125,7 @@ function showAlert(message, type = 'info') {
     
     document.body.appendChild(alert);
     
-    // Auto verwijderen na 5 seconden
+    // Auto remove after 5 seconds
     setTimeout(() => {
         if (alert.parentElement) {
             alert.remove();
@@ -226,7 +133,96 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
-// CSS animatie toevoegen
+// Loading functions
+function showLoading() {
+    let overlay = document.getElementById('loadingOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.innerHTML = '<div class="spinner"></div>';
+        document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'block';
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+// Form validation
+function validateForm(form) {
+    const requiredFields = form.querySelectorAll('[required]');
+    let isValid = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.style.borderColor = '#dc3545';
+            isValid = false;
+        } else {
+            field.style.borderColor = '#e9ecef';
+        }
+    });
+    
+    return isValid;
+}
+
+// Image preview functionality
+function initializeImagePreview() {
+    const imageInputs = document.querySelectorAll('input[type="file"][accept*="image"]');
+    
+    imageInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    if (preview) {
+                        preview.innerHTML = `
+                            <img src="${e.target.result}" alt="Preview" style="max-width: 200px; max-height: 150px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                        `;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+}
+
+// Smooth scrolling for anchor links
+function initializeSmoothScrolling() {
+    const links = document.querySelectorAll('a[href^="#"]');
+    
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+}
+
+// Initialize all functionality when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDropdowns();
+    initializeSearch();
+    initializeNotifications();
+    initializeImagePreview();
+    initializeSmoothScrolling();
+});
+
+// Add CSS animations
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideInRight {
@@ -239,36 +235,35 @@ style.textContent = `
             opacity: 1;
         }
     }
+    
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.7);
+        backdrop-filter: blur(3px);
+    }
+    
+    .spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
 `;
 document.head.appendChild(style);
-
-// Modal sluiten bij klik buiten modal
-window.addEventListener('click', function(event) {
-    const modal = document.getElementById('itemModal');
-    if (event.target === modal) {
-        closeModal();
-    }
-});
-
-// ESC toets om modal te sluiten
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeModal();
-    }
-});
-
-// Afbeelding preview
-document.getElementById('image').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const currentImageDiv = document.getElementById('currentImage');
-            currentImageDiv.innerHTML = `
-                <p><strong>Nieuwe afbeelding preview:</strong></p>
-                <img src="${e.target.result}" alt="Preview" style="max-width: 200px; max-height: 150px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            `;
-        };
-        reader.readAsDataURL(file);
-    }
-});
